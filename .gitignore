@@ -1,0 +1,11 @@
+.gradle
+local.properties
+.idea
+*.iml
+*.apk
+.DS_Store
+build
+jniLibs/
+obj/
+local.properties
+target/
