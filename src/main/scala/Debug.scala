@@ -2,7 +2,9 @@
 import java.io.File
 
 import com.sksamuel.scrimage.Image
+import org.json4s.jackson.Serialization
 import play.api.libs.json._
+import play.json.extra.Jsonx
 
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.currentMirror
@@ -45,18 +47,32 @@ object Debug extends App {
           e.printStackTrace()
       }
     }
+
+    implicit val cFormat = Jsonx.formatCaseClass[C]
+    implicit val formats = org.json4s.DefaultFormats
+
     implicit def writeAny: Writes[Map[String, Any]] = new Writes[Map[String, Any]] {
       override def writes(o: Map[String, Any]): JsValue = {
         var _sep:Seq[(String, JsValue)] = List()
         for (key <- o.keySet) {
-          _sep++= Seq("a" -> JsNumber(1))
+          val value:JsValue = o.getOrElse(key, None) match {
+            case C(0) => Json.toJson(o.get(key).get.asInstanceOf[C])
+            case v:Option[Any] => v.get match {
+              case s:String => JsString(s)
+              case b:Boolean => JsBoolean(b)
+            }
+            case _ => JsNull
+          }
+
+//          println(value)
+          _sep++= Seq(key -> value.asInstanceOf[JsValue])
         }
 
         JsObject(_sep)
       }
     }
 
-
+    println(Serialization.write(_map))
     println(Json.toJson(_map))
 //    Obj("", Some(""), new C, Seq(), Some(false))
 //    val a = result.fold {
@@ -64,14 +80,12 @@ object Debug extends App {
 //    }
 
 
-    val inImage = Image.fromFile(new File("D:\\screen_shot.jpg"))
-    println(s"w: ${inImage.width}, h: ${inImage.height}")
+//    val inImage = Image.fromFile(new File("D:\\screen_shot.jpg"))
+//    println(s"w: ${inImage.width}, h: ${inImage.height}")
 
   }
 }
 
-case class Obj (a: String, b: Option[String], c: C, d:Seq[Long], e:Option[Boolean])
+case class Obj (a: String, b: Option[String]=None, c: C, d:Seq[Long], e:Option[Boolean])
 
-class C {
-  def c: Int = 0
-}
+case class C (c:Int = 0)
